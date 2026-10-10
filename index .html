@@ -1,1 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blood Bank India - Demo</title>
+<style>
+:root { --red:#c62828; --dark:#202124; --muted:#5f6368; --bg:#f7f8fa; --card:#fff; }
+* { box-sizing:border-box; }
+body { margin:0; font-family:Arial, sans-serif; color:var(--dark); background:var(--bg); }
+header { background:var(--red); color:white; padding:22px 16px; text-align:center; }
+header h1 { margin:0 0 7px; font-size:27px; }
+header p { margin:0; font-size:14px; }
+main { max-width:760px; margin:18px auto; padding:0 14px 32px; }
+.notice { background:#fff3cd; border:1px solid #f0d98c; border-radius:10px; padding:12px; font-size:13px; line-height:1.5; margin-bottom:16px; }
+.tabs { display:flex; gap:8px; margin-bottom:14px; }
+button { cursor:pointer; border:0; border-radius:8px; padding:11px 14px; font-size:15px; }
+.tab { flex:1; background:#e8eaed; color:#202124; font-weight:bold; }
+.tab.active { background:var(--red); color:white; }
+.card { background:var(--card); border-radius:12px; padding:18px; box-shadow:0 2px 10px #0000000b; margin-bottom:14px; }
+h2 { font-size:20px; margin:0 0 14px; }
+label { display:block; font-size:14px; font-weight:bold; margin:12px 0 6px; }
+input, select { width:100%; padding:12px; border:1px solid #c7c9cc; border-radius:8px; font-size:15px; background:white; }
+.primary { background:var(--red); color:white; width:100%; margin-top:15px; font-weight:bold; }
+.secondary { background:#eceff1; color:#202124; }
+.small { font-size:12px; color:var(--muted); line-height:1.5; }
+.result { border:1px solid #e2e4e7; border-radius:10px; padding:13px; margin-top:10px; }
+.result strong { font-size:16px; }
+.badge { display:inline-block; background:#ffebee; color:#b71c1c; border-radius:20px; padding:4px 8px; font-weight:bold; font-size:12px; }
+.hidden { display:none; }
+footer { text-align:center; color:var(--muted); font-size:12px; padding:16px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🩸 Blood Bank India</h1>
+  <p>Blood donor finder — beginner demo</p>
+</header>
+<main>
+  <div class="notice"><b>Demo only:</b> This page uses sample records saved in this browser. It does not connect to real hospitals, blood banks, or a national donor database. For emergencies, contact a hospital or authorized blood bank.</div>
+  <div class="tabs">
+    <button class="tab active" id="findTab" onclick="showPage('find')">Find Blood</button>
+    <button class="tab" id="registerTab" onclick="showPage('register')">Register Donor</button>
+  </div>
 
+  <section id="findPage" class="card">
+    <h2>Find a donor</h2>
+    <label for="bloodGroup">Blood group</label>
+    <select id="bloodGroup">
+      <option value="">Select blood group</option>
+      <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+      <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+    </select>
+    <label for="searchState">State / Union Territory</label>
+    <select id="searchState"><option value="">Select state / UT</option></select>
+    <label for="searchCity">City / District</label>
+    <input id="searchCity" placeholder="e.g., Belagavi">
+    <button class="primary" onclick="findDonors()">Search donors</button>
+    <div id="results" aria-live="polite"></div>
+  </section>
+
+  <section id="registerPage" class="card hidden">
+    <h2>Register as a donor</h2>
+    <form id="donorForm">
+      <label for="donorName">Name or display name</label>
+      <input id="donorName" maxlength="60" required placeholder="Enter name">
+      <label for="donorBlood">Blood group</label>
+      <select id="donorBlood" required>
+        <option value="">Select blood group</option>
+        <option>A+</option><option>A-</option><option>B+</option><option>B-</option>
+        <option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+      </select>
+      <label for="donorState">State / Union Territory</label>
+      <select id="donorState" required><option value="">Select state / UT</option></select>
+      <label for="donorCity">City / District</label>
+      <input id="donorCity" required maxlength="80" placeholder="e.g., Belagavi">
+      <label for="donorContact">Contact (optional)</label>
+      <input id="donorContact" maxlength="100" placeholder="Only add contact you consent to store">
+      <label style="font-weight:normal"><input id="consent" type="checkbox" required style="width:auto"> I agree to save this information on this device for this demo.</label>
+      <button class="primary" type="submit">Save donor on this device</button>
+    </form>
+    <p class="small">Please do not enter another person's details without their clear permission. This demo stores entries only in this browser on this device; it does not send them to a server.</p>
+  </section>
+  <section class="card">
+    <h2>Demo controls</h2>
+    <p class="small">Use sample records to test search. Sample records are fictional and are not available donors.</p>
+    <button class="secondary" onclick="loadSamples()">Load fictional sample records</button>
+    <button class="secondary" onclick="clearDonors()" style="margin-left:6px">Clear saved records</button>
+    <p id="status" class="small" aria-live="polite"></p>
+  </section>
+</main>
+<footer>Blood Bank India • Prototype for learning only</footer>
+<script>
+const states = [
+"Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana",
+"Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur",
+"Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana",
+"Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Andaman and Nicobar Islands","Chandigarh",
+"Dadra and Nagar Haveli and Daman and Diu","Delhi","Jammu and Kashmir","Ladakh","Lakshadweep","Puducherry"
+];
+function fillStates(id) {
+  const sel = document.getElementById(id);
+  states.forEach(s => { const opt = document.createElement('option'); opt.value=s; opt.textContent=s; sel.appendChild(opt); });
+}
+fillStates('searchState'); fillStates('donorState');
+
+function showPage(page) {
+  document.getElementById('findPage').classList.toggle('hidden', page !== 'find');
+  document.getElementById('registerPage').classList.toggle('hidden', page !== 'register');
+  document.getElementById('findTab').classList.toggle('active', page === 'find');
+  document.getElementById('registerTab').classList.toggle('active', page === 'register');
+}
+function getDonors() {
+  try { return JSON.parse(localStorage.getItem('bloodBankDemoDonors') || '[]'); }
+  catch { return []; }
+}
+function saveDonors(list) {
+  localStorage.setItem('bloodBankDemoDonors', JSON.stringify(list));
+}
+function findDonors() {
+  const group = document.getElementById('bloodGroup').value;
+  const state = document.getElementById('searchState').value;
+  const city = document.getElementById('searchCity').value.trim().toLowerCase();
+  const out = document.getElementById('results');
+  if (!group) { out.innerHTML = '<p class="small">Please select a blood group first.</p>'; return; }
+  const matches = getDonors().filter(d =>
+    d.blood === group &&
+    (!state || d.state === state) &&
+    (!city || d.city.toLowerCase().includes(city))
+  );
+  if (!matches.length) {
+    out.innerHTML = '<p class="small">No matching saved demo records. This does not mean no donors are available in your area.</p>';
+    return;
+  }
+  out.innerHTML = '<p class="small">Matching records in this browser (not verified):</p>' + matches.map(d =>
+    `<div class="result"><strong>${escapeHtml(d.name)}</strong> <span class="badge">${escapeHtml(d.blood)}</span><p class="small">${escapeHtml(d.city)}, ${escapeHtml(d.state)}</p>${d.contact ? '<p class="small">Contact: ' + escapeHtml(d.contact) + '</p>' : '<p class="small">No contact provided</p>'}</div>`
+  ).join('');
+}
+function escapeHtml(v) {
+  return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+document.getElementById('donorForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const donor = {
+    name: document.getElementById('donorName').value.trim(),
+    blood: document.getElementById('donorBlood').value,
+    state: document.getElementById('donorState').value,
+    city: document.getElementById('donorCity').value.trim(),
+    contact: document.getElementById('donorContact').value.trim()
+  };
+  const list = getDonors();
+  list.push(donor);
+  saveDonors(list);
+  this.reset();
+  document.getElementById('status').textContent = 'Donor record saved on this device only.';
+  showPage('find');
+});
+function loadSamples() {
+  const samples = [
+    {name:'Sample Donor A (fictional)', blood:'A+', state:'Karnataka', city:'Belagavi', contact:''},
+    {name:'Sample Donor B (fictional)', blood:'O+', state:'Maharashtra', city:'Kolhapur', contact:''},
+    {name:'Sample Donor C (fictional)', blood:'B-', state:'Karnataka', city:'Bengaluru', contact:''}
+  ];
+  saveDonors([...getDonors(), ...samples]);
+  document.getElementById('status').textContent = 'Fictional samples added. They are not real donors.';
+}
+function clearDonors() {
+  if (confirm('Delete all demo records saved in this browser?')) {
+    localStorage.removeItem('bloodBankDemoDonors');
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('status').textContent = 'Saved demo records cleared.';
+  }
+}
+</script>
+</body>
+  </html>
